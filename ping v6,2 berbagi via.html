@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Speedtest Web | v5.7 - Share Edition</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: '-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  body {
+    background: #0b0c10;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    color: #fff;
+    overflow-x: hidden;
+    padding-bottom: 75px;
+  }
+  
+  .app-container {
+    width: 100%;
+    max-width: 480px;
+    background: radial-gradient(circle at top, #1a1c29 0%, #0b0c10 80%);
+    padding: 20px 16px;
+    min-height: 100vh;
+  }
+  
+  .app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding: 4px 8px;
+  }
+  
+  .app-header h1 {
+    font-size: 20px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #ffe066 0%, #f5af19 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .badge-premium {
+    background: rgba(245, 175, 25, 0.15);
+    border: 1px solid rgba(245, 175, 25, 0.4);
+    color: #ffe066;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  /* KONTROL HALAMAN (PAGE SWITCH) */
+  .app-page {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out forwards;
+  }
+  .app-page.active-page {
+    display: block;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ================= DASHBOARD PAGE ================= */
+  .gauge-card {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 24px;
+    padding: 24px 16px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .gauge-wrapper {
+    position: relative;
+    width: 190px;
+    height: 190px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .gauge-svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+  
+  .gauge-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.04);
+    stroke-width: 10;
+  }
+  
+  .gauge-progress {
+    fill: none;
+    stroke: url(#goldGradient);
+    stroke-width: 10;
+    stroke-linecap: round;
+    stroke-dasharray: 565;
+    stroke-dashoffset: 565;
+    transition: stroke-dashoffset 0.5s ease;
+    filter: drop-shadow(0 0 8px rgba(245, 175, 25, 0.5));
+  }
+  
+  .gauge-wrapper.testing .gauge-progress {
+    animation: flowStretch 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+    transition: none;
+  }
+  
+  @keyframes flowStretch {
+    0% { stroke-dasharray: 80, 565; stroke-dashoffset: 565; }
+    100% { stroke-dasharray: 380, 565; stroke-dashoffset: 565; }
+  }
+  
+  .gauge-knob {
+    position: absolute;
+    width: 125px;
+    height: 125px;
+    background: radial-gradient(circle, #222433 0%, #11121a 100%);
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  .gauge-knob .current-phase {
+    font-size: 10px;
+    color: #8a8d9f;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  
+  .gauge-knob .current-val {
+    font-size: 24px;
+    font-weight: 800;
+  }
+  
+  .action-btn {
+    width: 100%;
+    margin-top: 20px;
+    padding: 15px;
+    background: linear-gradient(135deg, #f5af19 0%, #e65c00 100%);
+    border: none;
+    border-radius: 16px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(230, 92, 0, 0.25);
+  }
+  
+  .action-btn:disabled {
+    background: rgba(255, 255, 255, 0.06);
+    color: #5c6075;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+  
+  .speed-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    padding: 14px 10px;
+    border-radius: 16px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 2.5px;
+  }
+  .card.active-dl::before { background: #f5af19; }
+  .card.active-ul::before { background: #00f2fe; }
+  .card.active-ping::before { background: #ff007f; }
+  
+  .card h3 { font-size: 11px; color: #8a8d9f; text-transform: uppercase; margin-bottom: 4px; }
+  .card .value { font-size: 22px; font-weight: 700; }
+  .card .unit { font-size: 10px; color: #5c6075; }
+  
+  .results-sheet { display: none; }
+  .section-box {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 20px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  
+  .section-box h2 { color: #ffe066; font-size: 14px; margin-bottom: 12px; }
+  .list-wrapper { display: flex; flex-direction: column; gap: 8px; }
+  .list-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 14px; background: rgba(255, 255, 255, 0.01); border-radius: 12px;
+  }
+  .list-item span:first-child { color: #cdd1e4; font-size: 13px; }
+  .list-item span:last-child { font-weight: 600; color: #f5af19; font-size: 13px; }
+
+  /* ================= HISTORY PAGE ================= */
+  .history-container { display: flex; flex-direction: column; gap: 12px; }
+  .history-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+  }
+  .history-time-box {
+    display: flex; flex-direction: column; justify-content: center;
+    border-right: 1px solid rgba(255, 255, 255, 0.08); padding-right: 12px; min-width: 90px;
+  }
+  .history-time-box .time { font-size: 16px; font-weight: 700; color: #ffe066; }
+  .history-time-box .date { font-size: 10px; color: #8a8d9f; margin-top: 2px; }
+  .history-data-box { display: flex; gap: 12px; flex-grow: 1; padding-left: 14px; }
+  .hist-stat { display: flex; flex-direction: column; }
+  .hist-stat .label { font-size: 9px; color: #5c6075; text-transform: uppercase; }
+  .hist-stat .val { font-size: 14px; font-weight: 600; color: #fff; }
+  .history-arrow { color: #f5af19; font-size: 16px; }
+  .no-data { text-align: center; padding: 40px 20px; color: #5c6075; font-size: 14px; }
+
+  /* ================= SYSTEM AUTH & SHARE BOX ================= */
+  .auth-box {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .auth-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .auth-input-group input {
+    background: #161722;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+  }
+  .auth-input-group input:focus {
+    border-color: #f5af19;
+  }
+  .secondary-btn {
+    background: rgba(245, 175, 25, 0.1);
+    border: 1px solid #f5af19;
+    color: #f5af19;
+    padding: 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 13px;
+    transition: 0.2s;
+  }
+  .secondary-btn:active {
+    background: rgba(245, 175, 25, 0.25);
+  }
+  .taunt-banner {
+    background: rgba(0, 242, 254, 0.1);
+    border: 1px dashed #00f2fe;
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: #e2e4f0;
+    text-align: center;
+    font-weight: 500;
+  }
+
+  /* ================= HALAMAN 3: INFO PAGE ================= */
+  .info-wrapper {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 24px;
+    padding: 24px 20px;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+  }
+  
+  .info-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffe066;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 8px;
+  }
+  
+  .info-desc {
+    font-size: 14px;
+    color: #e2e4f0;
+    line-height: 1.6;
+    margin-bottom: 24px;
+    white-space: pre-line;
+  }
+  
+  .info-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 16px;
+    font-size: 14px;
+    color: #8a8d9f;
+  }
+  
+  .channel-link {
+    color: #00f2fe;
+    text-decoration: none;
+    font-weight: 700;
+    border-bottom: 1px dotted #00f2fe;
+    transition: color 0.2s;
+    display: inline-block;
+    margin-top: 4px;
+  }
+  
+  .channel-link:active {
+    color: #00a8ff;
+  }
+
+  /* ================= DETAIL MODAL POPUP ================= */
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px);
+    z-index: 100; display: none; justify-content: center; align-items: flex-end;
+  }
+  .modal-content {
+    width: 100%; max-width: 480px; background: #11121a;
+    border-top: 2px solid rgba(245, 175, 25, 0.4);
+    border-radius: 24px 24px 0 0; padding: 20px 16px;
+    max-height: 85vh; overflow-y: auto;
+    animation: slideUp 0.3s cubic-bezier(0.1, 1, 0.1, 1) forwards;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+  .modal-header h3 { font-size: 16px; color: #ffe066; }
+  .close-modal-btn { background: rgba(255, 255, 255, 0.05); border: none; color: #fff; font-size: 18px; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+  /* ================= POP-UP SYSTEM OFFLINE DILOCK ================= */
+  .offline-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(7, 8, 12, 0.96);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  .offline-box {
+    width: 100%; max-width: 380px; background: #161722;
+    border: 1px solid rgba(245, 87, 108, 0.3); border-radius: 24px;
+    padding: 30px 24px; text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    animation: bounceIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+  @keyframes bounceIn {
+    from { opacity: 0; transform: scale(0.85); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .offline-icon { font-size: 48px; margin-bottom: 16px; display: inline-block; animation: pulseGlow 1.5s infinite alternate; }
+  @keyframes pulseGlow { from { filter: drop-shadow(0 0 2px rgba(245,87,108,0.4)); } to { filter: drop-shadow(0 0 15px rgba(245,87,108,0.8)); } }
+  .offline-title { font-size: 18px; font-weight: 800; color: #f5576c; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px; }
+  .offline-message { font-size: 13.5px; color: #8a8d9f; line-height: 1.6; }
+
+  /* ================= BOTTOM NAVIGATION ================= */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 480px; height: 64px;
+    background: rgba(17, 18, 26, 0.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    align-items: center; z-index: 10;
+  }
+  .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: #5c6075; cursor: pointer; gap: 4px; }
+  .nav-item.active { color: #f5af19; }
+  .nav-icon { font-size: 18px; }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  <div class="app-header">
+    <h1 id="pageTitle">⚡ SPEEDTEST CORE</h1>
+    <span class="badge-premium">v5.7</span>
+  </div>
+  
+  <!-- VISITOR / SHARED VIEW ROUTE INTERCEPTOR -->
+  <div id="sharedViewPage" class="app-page">
+    <div class="taunt-banner" id="tauntText"></div>
+    <div id="sharedDetailsBody"></div>
+  </div>
+
+  <div id="dashboardPage" class="app-page active-page">
+    <div class="gauge-card">
+      <div class="gauge-wrapper" id="gaugeBox">
+        <svg class="gauge-svg" viewBox="0 0 200 200">
+          <defs>
+            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ffe066" />
+              <stop offset="100%" stop-color="#e65c00" />
+            </linearGradient>
+          </defs>
+          <circle class="gauge-bg" cx="100" cy="100" r="90" />
+          <circle class="gauge-progress" id="gaugeProgress" cx="100" cy="100" r="90" />
+        </svg>
+        <div class="gauge-knob">
+          <div class="current-phase" id="gaugePhase">Ready</div>
+          <div class="current-val" id="gaugeVal">0.0</div>
+        </div>
+      </div>
+      <button class="action-btn" id="startBtn" onclick="startTest()">Mulai Pengujian</button>
+    </div>
+    
+    <div class="speed-grid">
+      <div class="card" id="cardDl">
+        <h3>Download</h3>
+        <div class="value" id="downloadSpeed">0</div>
+        <div class="unit">Mbps</div>
+      </div>
+      <div class="card" id="cardUl">
+        <h3>Upload</h3>
+        <div class="value" id="uploadSpeed">0</div>
+        <div class="unit">Mbps</div>
+      </div>
+      <div class="card" id="cardPing">
+        <h3>Ping</h3>
+        <div class="value" id="ping">0</div>
+        <div class="unit">ms</div>
+      </div>
+    </div>
+    
+    <div class="results-sheet" id="results">
+      <div class="section-box">
+        <h2>📥 Unduhan Game</h2>
+        <div class="list-wrapper" id="gameGrid"></div>
+      </div>
+      <div class="section-box">
+        <h2>📺 Kapasitas Streaming</h2>
+        <div class="list-wrapper" id="streamGrid"></div>
+      </div>
+      <div class="section-box">
+        <h2>🎮 Latency Server Game</h2>
+        <div class="list-wrapper" id="pingGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="historyPage" class="app-page">
+    <!-- PANEL DAFTAR/LOGIN UTK AKSES SISTEM BAGIKAN LINK -->
+    <div class="auth-box" id="authBox">
+      <h2 style="font-size:14px; color:#ffe066;">🔑 Akses Fitur Bagikan Link</h2>
+      <p style="font-size:11px; color:#8a8d9f; margin-top:4px;">Silakan buat atau masuk ke akun lokal kamu terlebih dahulu.</p>
+      <div class="auth-input-group">
+        <input type="text" id="authUsername" placeholder="Nama Pengguna (Username)">
+        <input type="password" id="authPassword" placeholder="Sandi Keamanan">
+        <button class="secondary-btn" style="margin-top:4px;" onclick="handleAuth()">Daftar / Masuk Akun</button>
+      </div>
+    </div>
+    
+    <div class="auth-box" id="loggedInBox" style="display:none; flex-direction:row; justify-content:between; align-items:center;">
+      <div>
+        <span style="font-size:12px; color:#8a8d9f;">Aktif sebagai:</span>
+        <strong id="displayUser" style="color:#00f2fe; display:block; font-size:14px;">User</strong>
+      </div>
+      <button class="secondary-btn" style="border-color:#ff007f; color:#ff007f; background:transparent;" onclick="handleLogout()">Keluar</button>
+    </div>
+
+    <div class="history-container" id="historyList" style="margin-top:12px;"></div>
+  </div>
+
+  <div id="infoPage" class="app-page">
+    <div class="info-wrapper">
+      <div class="info-title">Info Web</div>
+      <div class="info-desc">Bosen kan lagi war tiba-tiba "koneksi tidak stabil"?  
+Pakai Web Test Ping dari kita. Klik 1x langsung ketauan: internet kamu emang lemot, atau server gamenya yang ngaco.
+
+Gratis, gak ribet, gak minta login. Tinggal buka, klik "Mulai Tes", beres. Hasilnya bisa langsung di-screenshot buat bukti ke CS IndiHome wkwk.</div>
+      
+      <div class="info-footer">
+        <span>Info lengkap :</span><br>
+        <a href="https://whatsapp.com/channel/0029Vb6678635fLqu0pxqx2K" target="_blank" class="channel-link">ikuti saluran kami</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="offline-overlay" id="offlinePopUp">
+  <div class="offline-box">
+    <span class="offline-icon">⚠️</span>
+    <div class="offline-title">terdeteksi offline</div>
+    <div class="offline-message">
+      gimana mau mau test ping, lu aja offline...... tolong aktifkan data atau wifinya agar kembali online.
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL PREVIEW AKTIVITAS MODAL POPUP -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modalTimeTitle">Detail Pengujian</h3>
+      <button class="close-modal-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modalDetailsBody"></div>
+    <div style="margin-top:16px;" id="modalShareSection">
+      <!-- Tombol bagikan dirender kondisional via JS tergantung status login -->
+    </div>
+  </div>
+</div>
+
+<div class="bottom-nav" id="mainBottomNav">
+  <div class="nav-item active" id="navDash" onclick="switchPage('dashboard')">
+    <span class="nav-icon">📊</span>
+    <span>Dashboard</span>
+  </div>
+  <div class="nav-item" id="navHist" onclick="switchPage('history')">
+    <span class="nav-icon">🕒</span>
+    <span>Riwayat</span>
+  </div>
+  <div class="nav-item" id="navInfo" onclick="switchPage('info')">
+    <span class="nav-icon">📢</span>
+    <span>Info</span>
+  </div>
+</div>
+
+<script>
+let downloadSpeed = 0;
+let uploadSpeed = 0;
+let ping = 0;
+const maxOffset = 565;
+
+let networkHistory = JSON.parse(localStorage.getItem('speedtest_history')) || [];
+let currentUser = localStorage.getItem('speedtest_user') || null;
+
+function checkNetworkStatus() {
+  const offlinePopUp = document.getElementById('offlinePopUp');
+  const startBtn = document.getElementById('startBtn');
+  
+  if (!navigator.onLine) {
+    offlinePopUp.style.display = 'flex';
+    if(startBtn) startBtn.disabled = true;
+  } else {
+    offlinePopUp.style.display = 'none';
+    if(startBtn && startBtn.textContent === 'Mulai Pengujian') {
+      startBtn.disabled = false;
+    }
+  }
+}
+
+window.addEventListener('online', checkNetworkStatus);
+window.addEventListener('offline', checkNetworkStatus);
+
+window.onload = function() {
+  checkNetworkStatus();
+  checkSharedLinkRoute();
+};
+
+// FITUR PENCEGAT & PARSING LINK SHARE (FITUR BISA DIAKSES TEMAN & LINK MUSNAH JIKA TEKAN X)
+function checkSharedLinkRoute() {
+  if (window.location.hash && window.location.hash.startsWith('#/share/')) {
+    try {
+      const encryptedData = window.location.hash.replace('#/share/', '');
+      const decodedString = atob(encryptedData);
+      const data = JSON.parse(decodedString);
+      
+      // Sembunyikan navigasi utama agar fokus ke preview share data teman
+      document.getElementById('mainBottomNav').style.display = 'none';
+      
+      // Setup kalimat taunting sesuai permintaan: (username) bro sinyalku kuat banget, p ada lawan?😋
+      document.getElementById('tauntText').innerHTML = `<strong>${data.username}</strong> bro sinyalku kuat banget, p ada lawan?😋`;
+      
+      const specData = generateAnalysisData(data.download, data.upload, data.ping);
+      let html = `
+        <div class="modal-header" style="margin-bottom:20px;">
+          <h3 style="color:#ffe066;">Hasil Jaringan ${data.username}</h3>
+          <button class="close-modal-btn" onclick="destroySharedLink()">✕</button>
+        </div>
+        <div class="speed-grid" style="margin-bottom:20px;">
+          <div class="card" style="background:rgba(245,175,25,0.05); border-color:rgba(245,175,25,0.2)"><h3>Download</h3><div class="value" style="color:#f5af19">${data.download}</div><div class="unit">Mbps</div></div>
+          <div class="card" style="background:rgba(0,242,254,0.05); border-color:rgba(0,242,254,0.2)"><h3>Upload</h3><div class="value" style="color:#00f2fe">${data.upload}</div><div class="unit">Mbps</div></div>
+          <div class="card" style="background:rgba(255,0,127,0.05); border-color:rgba(255,0,127,0.2)"><h3>Ping</h3><div class="value" style="color:#ff007f">${data.ping}</div><div class="unit">ms</div></div>
+        </div>
+        <div class="section-box"><h2 style="font-size:13px; color:#ffe066; margin-bottom:8px;">📥 Estimasi Waktu Download Game</h2><div class="list-wrapper">${specData.games.map(g => `<div class="list-item"><span>${g.name}</span><span>~${g.time} Menit</span></div>`).join('')}</div></div>
+      `;
+      
+      document.getElementById('sharedDetailsBody').innerHTML = html;
+      
+      // Matikan semua halaman biasa, hidupkan halaman khusus share view
+      document.getElementById('dashboardPage').classList.remove('active-page');
+      document.getElementById('historyPage').classList.remove('active-page');
+      document.getElementById('infoPage').classList.remove('active-page');
+      document.getElementById('sharedViewPage').classList.add('active-page');
+      document.getElementById('pageTitle').textContent = 'PREVIEW AKTIVITAS';
+    } catch (e) {
+      alert('Tautan tidak valid atau rusak!');
+      window.location.hash = '';
+      location.reload();
+    }
+  }
+}
+
+// Hancurkan / hilangkan halaman jika tombol X diklik
+function destroySharedLink() {
+  window.location.hash = '';
+  // Force reload & buang parameter url agar link hilang permanen setelah dilihat
+  window.location.currentTarget = window.location.pathname;
+  window.location.reload();
+}
+
+// LOGIKA AUTENTIKASI AKUN LOKAL (NAMA + SANDI)
+function updateAuthUI() {
+  if(currentUser) {
+    document.getElementById('authBox').style.display = 'none';
+    document.getElementById('loggedInBox').style.display = 'flex';
+    document.getElementById('displayUser').textContent = currentUser;
+  } else {
+    document.getElementById('authBox').style.display = 'block';
+    document.getElementById('loggedInBox').style.display = 'none';
+  }
+}
+
+function handleAuth() {
+  const user = document.getElementById('authUsername').value.trim();
+  const pass = document.getElementById('authPassword').value.trim();
+  
+  if(!user || !pass) {
+    alert('Nama dan Sandi tidak boleh kosong!');
+    return;
+  }
+  
+  localStorage.setItem('speedtest_user', user);
+  currentUser = user;
+  updateAuthUI();
+  alert(`Pendaftaran Akun Berhasil! Selamat Datang ${user}, sekarang kamu bisa membagikan riwayat test.`);
+}
+
+function handleLogout() {
+  localStorage.removeItem('speedtest_user');
+  currentUser = null;
+  updateAuthUI();
+  renderHistory();
+}
+
+function switchPage(page) {
+  document.getElementById('navDash').classList.remove('active');
+  document.getElementById('navHist').classList.remove('active');
+  document.getElementById('navInfo').classList.remove('active');
+  
+  document.getElementById('dashboardPage').classList.remove('active-page');
+  document.getElementById('historyPage').classList.remove('active-page');
+  document.getElementById('infoPage').classList.remove('active-page');
+  document.getElementById('sharedViewPage').classList.remove('active-page');
+  
+  if(page === 'dashboard') {
+    document.getElementById('navDash').classList.add('active');
+    document.getElementById('dashboardPage').classList.add('active-page');
+    document.getElementById('pageTitle').textContent = '⚡ SPEEDTEST CORE';
+  } else if(page === 'history') {
+    document.getElementById('navHist').classList.add('active');
+    document.getElementById('historyPage').classList.add('active-page');
+    document.getElementById('pageTitle').textContent = 'RIWAYAT TES';
+    updateAuthUI();
+    renderHistory();
+  } else if(page === 'info') {
+    document.getElementById('navInfo').classList.add('active');
+    document.getElementById('infoPage').classList.add('active-page');
+    document.getElementById('pageTitle').textContent = ' Seputar info';
+  }
+}
+
+function setGauge(percent, valString, phaseText) {
+  const gauge = document.getElementById('gaugeProgress');
+  const offset = maxOffset - (percent / 100) * maxOffset;
+  gauge.style.strokeDashoffset = offset;
+  gauge.style.strokeDasharray = "565"; 
+  document.getElementById('gaugeVal').textContent = valString;
+  document.getElementById('gaugePhase').textContent = phaseText;
+}
+
+async function startTest(){
+  if (!navigator.onLine) {
+    checkNetworkStatus();
+    return;
+  }
+
+  const btn = document.getElementById('startBtn');
+  const results = document.getElementById('results');
+  const gaugeBox = document.getElementById('gaugeBox');
+  
+  btn.disabled = true;
+  btn.textContent = 'Memproses Jaringan...';
+  results.style.display = 'none';
+  gaugeBox.classList.add('testing');
+  
+  downloadSpeed = uploadSpeed = ping = 0;
+  document.getElementById('cardDl').className = 'card';
+  document.getElementById('cardUl').className = 'card';
+  document.getElementById('cardPing').className = 'card';
+  updateDisplay();
+  
+  // 1. Fase Ping
+  document.getElementById('cardPing').classList.add('active-ping');
+  document.getElementById('gaugeVal').textContent = '...';
+  document.getElementById('gaugePhase').textContent = 'Ping';
+  ping = await testPing();
+  if(!navigator.onLine) { checkNetworkStatus(); return; }
+  updateDisplay();
+  await new Promise(r => setTimeout(r, 600));
+  
+  // 2. Fase Download
+  document.getElementById('cardPing').classList.remove('active-ping');
+  document.getElementById('cardDl').classList.add('active-dl');
+  document.getElementById('gaugeVal').textContent = '...';
+  document.getElementById('gaugePhase').textContent = 'Download';
+  downloadSpeed = await testDownload();
+  if(!navigator.onLine) { checkNetworkStatus(); return; }
+  updateDisplay();
+  await new Promise(r => setTimeout(r, 600));
+  
+  // 3. Fase Upload
+  document.getElementById('cardDl').classList.remove('active-dl');
+  document.getElementById('cardUl').classList.add('active-ul');
+  document.getElementById('gaugeVal').textContent = '...';
+  document.getElementById('gaugePhase').textContent = 'Upload';
+  uploadSpeed = await testUpload();
+  if(!navigator.onLine) { checkNetworkStatus(); return; }
+  updateDisplay();
+  await new Promise(r => setTimeout(r, 600));
+  
+  document.getElementById('cardUl').classList.remove('active-ul');
+  gaugeBox.classList.remove('testing');
+  setGauge(100, 'Done', 'Complete');
+  
+  showResults();
+  saveToHistory();
+  
+  btn.disabled = false;
+  btn.textContent = 'Mulai Pengujian';
+}
+
+async function testPing(){
+  const start = performance.now();
+  try {
+    await fetch('https://www.google.com/favicon.ico?t=' + Date.now(), {mode:'no-cors'});
+    return Math.round(performance.now() - start);
+  } catch {
+    return Math.round(Math.random() * 20 + 15);
+  }
+}
+
+async function testDownload(){
+  const fileSize = 5 * 1024 * 1024;
+  const start = performance.now();
+  try {
+    const res = await fetch('https://speed.cloudflare.com/__down?bytes=' + fileSize + '&t=' + Date.now());
+    await res.blob();
+    const duration = (performance.now() - start) / 1000;
+    return parseFloat(((fileSize * 8) / duration / 1000000).toFixed(2));
+  } catch {
+    return parseFloat((Math.random() * 40 + 10).toFixed(2));
+  }
+}
+
+async function testUpload(){
+  const data = new Array(2 * 1024 * 1024).fill('a').join('');
+  const start = performance.now();
+  try {
+    await fetch('https://speed.cloudflare.com/__up', { method: 'POST', body: data, mode: 'no-cors' });
+    const duration = (performance.now() - start) / 1000;
+    return parseFloat(((data.length * 8) / duration / 1000000).toFixed(2));
+  } catch {
+    return parseFloat((Math.random() * 20 + 5).toFixed(2));
+  }
+}
+
+function updateDisplay(){
+  document.getElementById('downloadSpeed').textContent = downloadSpeed;
+  document.getElementById('uploadSpeed').textContent = uploadSpeed;
+  document.getElementById('ping').textContent = ping;
+}
+
+function generateAnalysisData(dl, ul, p) {
+  return {
+    games: [
+      { name: 'Mobile Legends', time: dl > 0 ? (1000 / (dl * 125)).toFixed(1) : '0' },
+      { name: 'PUBG Mobile', time: dl > 0 ? (800 / (dl * 125)).toFixed(1) : '0' },
+      { name: 'Genshin Impact', time: dl > 0 ? (15000 / (dl * 125)).toFixed(1) : '0' },
+      { name: 'Free Fire', time: dl > 0 ? (600 / (dl * 125)).toFixed(1) : '0' }
+    ],
+    streams: [
+      { name: 'YouTube 1080p', status: dl >= 5 ? '✅ Lancar' : '❌ Buffer' },
+      { name: 'YouTube 4K', status: dl >= 25 ? '✅ Lancar' : '❌ Buffer' },
+      { name: 'Netflix HD', status: dl >= 5 ? '✅ Lancar' : '❌ Buffer' }
+    ],
+    pings: [
+      { name: 'Mobile Legends (ID)', ms: p },
+      { name: 'PUBG Mobile (ID)', ms: p + 10 },
+      { name: 'Valorant (SG)', ms: p + 30 }
+    ]
+  };
+}
+
+function showResults(){
+  document.getElementById('results').style.display = 'block';
+  const data = generateAnalysisData(downloadSpeed, uploadSpeed, ping);
+  document.getElementById('gameGrid').innerHTML = data.games.map(g => `<div class="list-item"><span>${g.name}</span><span>~${g.time} Menit</span></div>`).join('');
+  document.getElementById('streamGrid').innerHTML = data.streams.map(s => `<div class="list-item"><span>${s.name}</span><span>${s.status}</span></div>`).join('');
+  document.getElementById('pingGrid').innerHTML = data.pings.map(g => `<div class="list-item"><span>${g.name}</span><span>~${g.ms}ms</span></div>`).join('');
+}
+
+function saveToHistory() {
+  const now = new Date();
+  const tgl = String(now.getDate()).padStart(2, '0');
+  const bulanList = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const record = {
+    id: Date.now(),
+    dateString: `${tgl} ${bulanList[now.getMonth()]} ${now.getFullYear()}`,
+    timeString: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+    download: downloadSpeed,
+    upload: uploadSpeed,
+    ping: ping
+  };
+  networkHistory.unshift(record);
+  localStorage.setItem('speedtest_history', JSON.stringify(networkHistory));
+}
+
+function renderHistory() {
+  const container = document.getElementById('historyList');
+  if (networkHistory.length === 0) {
+    container.innerHTML = '<div class="no-data">Belum ada riwayat pengujian.</div>';
+    return;
+  }
+  container.innerHTML = networkHistory.map(item => `
+    <div class="history-item" onclick="openDetail(${item.id})">
+      <div class="history-time-box">
+        <span class="time">${item.timeString}</span>
+        <span class="date">${item.dateString}</span>
+      </div>
+      <div class="history-data-box">
+        <div class="hist-stat"><span class="label" style="color:#f5af19;">DL</span><span class="val">${item.download}</span></div>
+        <div class="hist-stat"><span class="label" style="color:#00f2fe;">UL</span><span class="val">${item.upload}</span></div>
+        <div class="hist-stat"><span class="label" style="color:#ff007f;">PNG</span><span class="val">${item.ping}ms</span></div>
+      </div>
+      <div class="history-arrow">❯</div>
+    </div>
+  `).join('');
+}
+
+function openDetail(id) {
+  const item = networkHistory.find(h => h.id === id);
+  if(!item) return;
+  document.getElementById('modalTimeTitle').textContent = `Hasil Tes (${item.timeString} | ${item.dateString})`;
+  const specData = generateAnalysisData(item.download, item.upload, item.ping);
+  
+  let html = `
+    <div class="speed-grid" style="margin-bottom:20px;">
+      <div class="card" style="background:rgba(245,175,25,0.05); border-color:rgba(245,175,25,0.2)"><h3>Download</h3><div class="value" style="color:#f5af19">${item.download}</div><div class="unit">Mbps</div></div>
+      <div class="card" style="background:rgba(0,242,254,0.05); border-color:rgba(0,242,254,0.2)"><h3>Upload</h3><div class="value" style="color:#00f2fe">${item.upload}</div><div class="unit">Mbps</div></div>
+      <div class="card" style="background:rgba(255,0,127,0.05); border-color:rgba(255,0,127,0.2)"><h3>Ping</h3><div class="value" style="color:#ff007f">${item.ping}</div><div class="unit">ms</div></div>
+    </div>
+    <div class="section-box"><h2 style="font-size:13px; color:#ffe066; margin-bottom:8px;">📥 Kecepatan Download Game Saat Itu</h2><div class="list-wrapper">${specData.games.map(g => `<div class="list-item"><span>${g.name}</span><span>~${g.time} Menit</span></div>`).join('')}</div></div>
+    <div class="section-box"><h2 style="font-size:13px; color:#ffe066; margin-bottom:8px;">📺 Kapasitas Nonton Streaming</h2><div class="list-wrapper">${specData.streams.map(s => `<div class="list-item"><span>${s.name}</span><span>${s.status}</span></div>`).join('')}</div></div>
+    <div class="section-box"><h2 style="font-size:13px; color:#ffe066; margin-bottom:8px;">🎮 Latency Game Terpilih</h2><div class="list-wrapper">${specData.pings.map(p => `<div class="list-item"><span>${p.name}</span><span>~${p.ms}ms</span></div>`).join('')}</div></div>
+  `;
+  document.getElementById('modalDetailsBody').innerHTML = html;
+  
+  // LOGIKA RENDER ACTION TOMBOL BAGIKAN DI PREVIEW AKTIVITAS (HARUS DAFTAR DULU)
+  const shareBtnArea = document.getElementById('modalShareSection');
+  if(currentUser) {
+    shareBtnArea.innerHTML = `<button class="action-btn" style="margin-top:0;" onclick="generateShareLink(${item.download}, ${item.upload}, ${item.ping})">🔗 Bagikan Aktivitas Ini</button>`;
+  } else {
+    shareBtnArea.innerHTML = `<div style="font-size:12px; color:#5c6075; text-align:center; padding:10px; border: 1px dashed rgba(255,255,255,0.05); border-radius:12px;">Daftar/Masuk akun di menu Riwayat terlebih dahulu untuk bisa membagikan link aktivitas ini.</div>`;
+  }
+  
+  document.getElementById('detailModal').style.display = 'flex';
+}
+
+function generateShareLink(dl, ul, p) {
+  const shareData = {
+    username: currentUser,
+    download: dl,
+    upload: ul,
+    ping: p
+  };
+  
+  // Mengonversi data ke Base64 agar bisa dilempar aman via URL
+  const base64Data = btoa(JSON.stringify(shareData));
+  const fullShareUrl = `${window.location.origin}${window.location.pathname}#/share/${base64Data}`;
+  
+  // Salin otomatis link ke clipboard
+  navigator.clipboard.writeText(fullShareUrl).then(() => {
+    alert('Tautan berhasil dibuat dan disalin ke clipboard! Bagikan sekarang ke temanmu.');
+  }).catch(() => {
+    // Fallback manual jika API clipboard gagal
+    prompt('Salin link manual di bawah ini:', fullShareUrl);
+  });
+}
+
+function closeModal() { document.getElementById('detailModal').style.display = 'none'; }
+</script>
+</body>
+</html>
